@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>第四週作業</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3"
+    crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios@1.1.2/dist/axios.min.js"></script>
+  <style>
+    img {
+      object-fit: contain;
+      max-width: 100%;
+    }
+
+    .primary-image {
+      height: 300px;
+    }
+
+    .images {
+      height: 150px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="app">
+    <div class="container">
+      <div class="text-end mt-4">
+        <button class="btn btn-primary" aria-labelledby="productModalLabel" aria-hidden="true" @click="newData()">
+          建立新的產品
+        </button>
+      </div>
+      <table class="table mt-4">
+        <thead>
+          <tr>
+            <th width="120">
+              分類
+            </th>
+            <th width="120">產品名稱</th>
+            <th width="120">
+              原價
+            </th>
+            <th width="120">
+              售價
+            </th>
+            <th width="100">
+              是否啟用
+            </th>
+            <th width="120">
+              編輯
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="product in products" :key="product.id">
+            <td> {{ product.category }}</td>
+            <td>{{ product.title }}</td>
+            <td class="text-end">{{ product.origin_price }}</td>
+            <td class="text-end">{{ product.price }}</td>
+            <td>
+              <span class="text-success" v-if="product.is_enabled">啟用</span>
+              <span v-else>未啟用</span>
+            </td>
+            <td>
+              <div class="btn-group">
+                <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal"
+                  data-bs-target="#productModal" @click="upDa(product)">
+                  編輯
+                </button>
+                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal"
+                  data-bs-target="#delProductModal" @click="del(product)">刪除
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <!-- 分頁 -->
+      <vuepagination />
+    </div>
+    <!-- 新增編輯Modal -->
+    <productmodal :upbtn="upbtn" :newData="newData" :new-product="newProduct" :copyproducts="copyproducts" :upDa="upDa"
+      :up-product="upProduct" :img="img"></productmodal>
+    <!-- 刪除Modal -->
+    <delproductpmodal :del="del" :delproduct="delproduct" :copyproducts="copyproducts"></delproductpmodal>
+  </div>
+
+  <!-- 分頁元件 -->
+  <script type="text/x-template" id="pagination">
+    <nav aria-label="Page navigation example">
+          <ul class="pagination">
+            <li class="page-item">
+              <a class="page-link" href="#" aria-label="Previous">
+                <span aria-hidden="true">&laquo;</span>
+              </a>
+            </li>
+            <li class="page-item"><a class="page-link" href="#">1</a></li>
+            <li class="page-item">
+              <a class="page-link" href="#" aria-label="Next">
+                <span aria-hidden="true">&raquo;</span>
+              </a>
+            </li>
+          </ul>
+        </nav>
+  </script>
+
+  <!-- 新增編輯元件 -->
+  <script type="text/x-template" id="productModal">
+    <div id="productModal" ref="productModal" class="modal fade" tabindex="-1" aria-labelledby="productModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+          <div class="modal-content border-0">
+            <div class="modal-header bg-dark text-white">
+              <h5 id="productModalLabel" class="modal-title">
+                <span v-if="upbtn==false">新增產品</span>
+                <span v-else>編輯產品</span>
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              <div class="row">
+                <div class="col-sm-4">
+                  <div class="mb-2">
+                    <div class="mb-3">
+                      <label for="imageUrl" class="form-label">輸入圖片網址</label>
+                      <input type="text" class="form-control" placeholder="請輸入圖片連結" v-model="copyproducts.imageUrl">
+                    </div>
+                    <img class="img-fluid" :src="copyproducts.imageUrl" alt="">
+                  </div>
+                  <div v-if="img==true">
+                    <button class="btn btn-outline-danger btn-sm d-block w-100" @click="copyproducts.imageUrl=[]">
+                      刪除圖片
+                    </button>
+                  </div>
+                </div>
+                <div class="col-sm-8">
+                  <div class="mb-3">
+                    <label for="title" class="form-label">標題</label>
+                    <input id="title" type="text" class="form-control" placeholder="請輸入標題" v-model="copyproducts.title">
+                  </div>
+  
+                  <div class="row">
+                    <div class="mb-3 col-md-6">
+                      <label for="category" class="form-label">分類</label>
+                      <input id="category" type="text" class="form-control" placeholder="請輸入分類"
+                        v-model="copyproducts.category">
+                    </div>
+                    <div class="mb-3 col-md-6">
+                      <label for="price" class="form-label">單位</label>
+                      <input id="unit" type="text" class="form-control" placeholder="請輸入單位" v-model="copyproducts.unit">
+                    </div>
+                  </div>
+  
+                  <div class="row">
+                    <div class="mb-3 col-md-6">
+                      <label for="origin_price" class="form-label">原價</label>
+                      <input id="origin_price" type="number" min="0" class="form-control" placeholder="請輸入原價"
+                        v-model.number="copyproducts.origin_price">
+                    </div>
+                    <div class="mb-3 col-md-6">
+                      <label for="price" class="form-label">售價</label>
+                      <input id="price" type="number" min="0" class="form-control" placeholder="請輸入售價"
+                        v-model.number="copyproducts.price">
+                    </div>
+                  </div>
+                  <hr>
+  
+                  <div class="mb-3">
+                    <label for="description" class="form-label">產品描述</label>
+                    <textarea id="description" type="text" class="form-control" placeholder="請輸入產品描述"
+                      v-model="copyproducts.description">
+                      </textarea>
+                  </div>
+                  <div class="mb-3">
+                    <label for="content" class="form-label">說明內容</label>
+                    <textarea id="description" type="text" class="form-control" placeholder="請輸入說明內容"
+                      v-model="copyproducts.content">
+                      </textarea>
+                  </div>
+                  <div class="mb-3">
+                    <div class="form-check">
+                      <input id="is_enabled" v-model="copyproducts.is_enabled" class="form-check-input" type="checkbox"
+                        :true-value="1" :false-value="0">
+                      <label class="form-check-label" for="is_enabled">是否啟用</label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                取消
+              </button>
+              <button type="button" class="btn btn-primary" v-if="upbtn==false" @click="newProduct()">
+                確認新增
+              </button>
+              <button type="button" class="btn btn-primary" v-else @click="upProduct()">
+                確認編輯
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+  </script>
+
+  <!-- 刪除元件 -->
+  <script type="text/x-template" id="delProductModal">
+    <div id="delProductModal" ref="delProductModal" class="modal fade" tabindex="-1"
+        aria-labelledby="delProductModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content border-0">
+            <div class="modal-header bg-danger text-white">
+              <h5 id="delProductModalLabel" class="modal-title">
+                <span>刪除產品</span>
+              </h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+              是否刪除
+              <strong class="text-danger">{{ copyproducts.title }}</strong> 商品(刪除後將無法恢復)。
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                取消
+              </button>
+              <button type="button" class="btn btn-danger" @click="delproduct(item)">
+                確認刪除
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+  </script>
+</body>
+
+
+
+
+<script type="module">
+  import { createApp } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
+
+  //刪除
+  const delproductpmodal = {
+    template: `#delProductModal`,
+    props: ['del', 'delproduct', 'copyproducts']
+  };
+  // 分頁
+  const vuepagination = {
+    template: `#pagination`
+  };
+  //新增編輯
+  const productmodal = {
+    template: `#productModal`,
+    props: ['upbtn', 'newData', 'newProduct', 'copyproducts', 'upDa', 'upProduct', 'img']
+  };
+
+
+  let delModal = ' ';
+  let productModal = ' ';
+
+  const app = createApp({
+    data() {
+      return {
+        url: 'https://vue3-course-api.hexschool.io/v2/',
+        path: 'qqq-api',
+        usedata: {
+          username: " ",
+          password: "",
+        },
+        products: [],
+        copyproducts: [],
+        newproducts: [],
+        img: false,
+        upbtn: false,
+      }
+    },
+    components: {
+      vuepagination,
+      productmodal,
+      delproductpmodal
+    },
+    methods: {
+      check() {
+        axios.post(`${this.url}api/user/check`)
+          .then((res) => {
+            this.getdata()
+          })
+          .catch((err) => {
+            console.log(err);
+            alert(err.response.data.message)
+            window.location = 'home.html';
+          })
+      },
+      getdata() {
+        axios.get(`${this.url}api/${this.path}/admin/products`)
+          .then((res) => {
+            this.products = res.data.products
+          })
+          .catch((err) => {
+            console.log(err);
+          })
+      },
+      newData() {
+        productModal.show();
+        this.img = false;
+        this.upbtn = false;
+        this.copyproducts = []
+      },
+      newProduct() {
+        this.newproducts = { ...this.copyproducts }
+        console.log(this.newproducts)
+        axios.post(`${this.url}api/${this.path}/admin/product`, { data: this.newproducts })
+          .then((res) => {
+            productModal.hide();
+            this.getdata();
+          })
+          .catch((err) => {
+            console.log(err);
+          })
+      },
+      upDa(product) {
+        this.img = true;
+        this.upbtn = true;
+        this.copyproducts = { ...product }
+      },
+      upProduct() {
+        axios.put(`${this.url}api/${this.path}/admin/product/${this.copyproducts.id}`, { data: this.copyproducts })
+          .then((res) => {
+            productModal.hide();
+            this.getdata();
+          })
+          .catch((err) => {
+            console.log(err);
+          })
+      },
+      del(product) {
+        this.copyproducts = { ...product }
+      },
+      delproduct() {
+        axios.delete(`${this.url}api/${this.path}/admin/product/${this.copyproducts.id}`)
+          .then((res) => {
+            delModal.hide();
+            this.getdata();
+          })
+          .catch((err) => {
+            console.log(err);
+          })
+      }
+    },
+    mounted() {
+      const token = document.cookie.replace(/(?:(?:^|.*;\s*)qqqapi\s*=\s*([^;]*).*$)|^.*$/, '$1');
+      axios.defaults.headers.common.Authorization = token;
+      this.check()// 檢查是否登入成功
+
+      delModal = new bootstrap.Modal(document.getElementById('delProductModal'))
+      productModal = new bootstrap.Modal(document.getElementById('productModal'))
+    }
+  });
+  app.mount('#app');
+</script>
+
+</html>
